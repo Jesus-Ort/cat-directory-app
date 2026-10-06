@@ -91,12 +91,7 @@ pnpm preview
 
 Resultados actuales:
 
-| Categoría      | Resultado |
-| -------------- | --------: |
-| Performance    |      > 90 |
-| Accessibility  |       100 |
-| Best Practices |       100 |
-| SEO            |      > 90 |
+![Lighthouse](./public/lighthouse-seo.png)
 
 ## Estado
 
