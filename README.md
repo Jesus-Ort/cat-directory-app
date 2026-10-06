@@ -91,7 +91,7 @@ pnpm preview
 
 Resultados actuales:
 
-![Lighthouse](./public/lighthouse-seo.png)
+![Lighthouse](./public/lighthouse.png)
 
 ## Estado
 
