@@ -1,4 +1,4 @@
-import type { BreedsResponse, Fact} from '~/types/catfact'
+import type { BreedsResponse, Fact, Breed } from '~/types/catfact'
 
 import { breedsResponseSchema, factSchema } from '~/types/catfact'
 
@@ -26,4 +26,30 @@ export async function getRandomFact(): Promise<Fact> {
 
         return factSchema.parse(response)
     })
+}
+
+export async function getBreedByName(
+    name: string,
+    ): Promise<Breed | null> {
+    let page = 1
+    let lastPage = 1
+
+    while (page <= lastPage) {
+        const response = await getBreeds(page)
+
+        const breed = response.data.find(
+        (item) =>
+            item.breed.toLocaleLowerCase() ===
+            name.toLocaleLowerCase(),
+        )
+
+        if (breed) {
+        return breed
+        }
+
+        lastPage = response.last_page
+        page++
+    }
+
+    return null
 }
