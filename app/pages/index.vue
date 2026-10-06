@@ -372,4 +372,10 @@ onBeforeUnmount(() => {
         cancelAnimationFrame(scrollFrame)
     }
 })
+
+useSeoMeta({
+    title: 'Michiario - Directorio de razas de gatos',
+    description:
+        'Explora un directorio de razas de gatos con información sobre su país de origen, pelaje y patrón.',
+})
 </script>
