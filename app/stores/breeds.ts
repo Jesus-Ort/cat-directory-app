@@ -4,10 +4,10 @@ import { getBreeds } from '~/services/catfact'
 
 export const useBreedsStore = defineStore('breeds', () => {
     const breeds = ref<Breed[]>([])
+
     const currentPage = ref(0)
     const lastPage = ref(1)
 
-    const loadingPages = ref(new Set<number>())
     const loading = ref(false)
     const loadingMore = ref(false)
     const error = ref<unknown>(null)
@@ -26,86 +26,93 @@ export const useBreedsStore = defineStore('breeds', () => {
         breeds.value = response.data
         currentPage.value = response.current_page
         lastPage.value = response.last_page
+
+        return true
         } catch (err) {
         error.value = err
+
+        return false
         } finally {
         loading.value = false
         }
     }
 
-    async function loadMore() {
-    if (
-        loadingMore.value ||
+    async function loadMore(): Promise<boolean> {
+        if (
         loading.value ||
+        loadingMore.value ||
         !hasMore.value
-    ) {
-        return
-    }
+        ) {
+        return false
+        }
 
-    const nextPage = currentPage.value + 1
+        const nextPage = currentPage.value + 1
 
-    if (loadingPages.value.has(nextPage)) {
-        return
-    }
+        loadingMore.value = true
+        error.value = null
 
-    loadingPages.value.add(nextPage)
-    loadingMore.value = true
-    error.value = null
-
-    try {
+        try {
         const response = await getBreeds(nextPage)
 
         breeds.value.push(...response.data)
 
         currentPage.value = response.current_page
         lastPage.value = response.last_page
-    } catch (err) {
+
+        return true
+        } catch (err) {
         error.value = err
-    } finally {
-        loadingPages.value.delete(nextPage)
+
+        return false
+        } finally {
         loadingMore.value = false
-    }
+        }
     }
 
     async function refresh() {
         breeds.value = []
         currentPage.value = 0
         lastPage.value = 1
+        error.value = null
 
-        await loadInitial()
+        return await loadInitial()
     }
 
-    async function findBreed(name: string): Promise<Breed | null> {
-        const normalizedName = name.trim().toLocaleLowerCase()
+    async function findBreed(
+        name: string,
+    ): Promise<Breed | null> {
+        const normalizedName = name
+        .trim()
+        .toLocaleLowerCase()
 
         const existingBreed = breeds.value.find(
-            (breed) =>
+        (breed) =>
             breed.breed.toLocaleLowerCase() === normalizedName,
         )
 
         if (existingBreed) {
-            return existingBreed
+        return existingBreed
         }
 
         let page = currentPage.value || 1
 
         while (page <= lastPage.value) {
-            const response = await getBreeds(page)
+        const response = await getBreeds(page)
 
-            const breed = response.data.find(
+        const breed = response.data.find(
             (item) =>
-                item.breed.toLocaleLowerCase() === normalizedName,
-            )
+            item.breed.toLocaleLowerCase() === normalizedName,
+        )
 
-            if (breed) {
+        if (breed) {
             return breed
-            }
+        }
 
-            if (page >= response.last_page) {
+        if (page >= response.last_page) {
             break
-            }
+        }
 
-            page++
+        page++
         }
 
         return null
@@ -122,6 +129,6 @@ export const useBreedsStore = defineStore('breeds', () => {
         loadInitial,
         loadMore,
         refresh,
-        findBreed
+        findBreed,
     }
 })

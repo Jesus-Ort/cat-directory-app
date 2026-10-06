@@ -12,13 +12,12 @@
             Buscar raza o país
         </label>
 
-        <div class="flex justify-between gap-4">
+        <div class="flex gap-4">
             <UInput
             id="breed-search"
             v-model="searchInput"
             placeholder="Ej. Siamese, Egypt..."
             class="w-full"
-            aria-label="Buscar razas por nombre o país"
             />
 
             <UButton
@@ -32,24 +31,43 @@
         </div>
         </div>
 
+        <!-- Carga inicial -->
         <div
         v-if="loading"
         role="status"
         aria-live="polite"
-        class="py-8 text-center"
+        aria-label="Cargando razas"
+        class="space-y-3"
         >
-        Cargando razas...
+        <USkeleton
+            v-for="index in 8"
+            :key="index"
+            class="h-20 w-full"
+        />
         </div>
 
+        <!-- Error inicial -->
         <div
         v-else-if="error"
         role="alert"
         class="py-8 text-center"
         >
-        No se pudieron cargar las razas.
-        Intenta recargar la página.
+        <p class="mb-4">
+            No se pudieron cargar las razas.
+        </p>
+
+        <UButton
+            type="button"
+            icon="i-lucide-refresh-cw"
+            :loading="loading"
+            :disabled="loading"
+            @click="handleRefresh"
+        >
+            Intentar nuevamente
+        </UButton>
         </div>
 
+        <!-- Contenido -->
         <div v-else>
         <p
             class="mb-4 text-sm text-gray-500"
@@ -64,6 +82,7 @@
             estimateSize: 100,
             overscan: 5,
             }"
+            :aria-busy="loadingMore"
             class="h-[600px] w-full"
             aria-label="Directorio de razas de gatos"
             @scroll="handleScroll"
@@ -90,30 +109,36 @@
             </template>
         </UScrollArea>
 
-        <div>
-            <div
+        <!-- Cargando siguiente página -->
+        <div
             v-if="loadingMore"
             role="status"
             aria-live="polite"
-            class="py-4 text-center"
-            >
-            Cargando más razas...
-            </div>
+            aria-label="Cargando más razas"
+            class="space-y-3 py-4"
+        >
+            <USkeleton
+            v-for="index in 2"
+            :key="index"
+            class="h-20 w-full"
+            />
+        </div>
 
-            <p
+        <!-- Fin de resultados -->
+        <p
             v-if="!hasMore && breeds.length > 0"
-            class="py-4 text-center text-gray-500"
-            >
+            class="py-4 text-center text-sm text-gray-500"
+        >
             Has llegado al final de la lista.
-            </p>
+        </p>
 
-            <p
+        <!-- Sin resultados -->
+        <p
             v-if="filteredBreeds.length === 0"
             class="py-8 text-center text-gray-500"
-            >
+        >
             No se encontraron razas que coincidan con la búsqueda.
-            </p>
-        </div>
+        </p>
         </div>
     </main>
 </template>
@@ -167,6 +192,38 @@ const filteredBreeds = computed(() => {
         )
     })
 })
+
+let debounceTimer:
+    | ReturnType<typeof setTimeout>
+    | undefined
+
+watch(searchInput, (value) => {
+    if (debounceTimer) {
+        clearTimeout(debounceTimer)
+    }
+
+    debounceTimer = setTimeout(() => {
+        const search = value.trim()
+
+        router.replace({
+        query: {
+            ...route.query,
+            search: search || undefined,
+        },
+        })
+    }, 300)
+})
+
+watch(
+    () => route.query.search,
+    (value) => {
+        const search = getSearchQuery(value)
+
+        if (search !== searchInput.value) {
+        searchInput.value = search
+        }
+    },
+)
 
 let isLoadingNextPage = false
 
@@ -231,15 +288,23 @@ async function restorePageFromUrl() {
     }
 }
 
-function handleScroll(isScrolling: boolean) {
-    if (!isScrolling) {
+let scrollFrame: number | undefined
+
+function handleScroll() {
+    
+    if (scrollFrame !== undefined) {
         return
     }
 
-    void checkScrollPosition()
+    scrollFrame = requestAnimationFrame(() => {
+        scrollFrame = undefined
+
+        void checkScrollPosition()
+    })
 }
 
 async function checkScrollPosition() {
+
     if (
         isLoadingNextPage ||
         loading.value ||
@@ -272,14 +337,14 @@ async function checkScrollPosition() {
         viewport.scrollTop -
         viewport.clientHeight
 
-    const threshold = 300
+    if (distanceFromBottom > 150) {
+        return
+    }
 
-    if (distanceFromBottom <= threshold) {
-        const loaded = await loadNextPage()
+    const loaded = await loadNextPage()
 
-        if (loaded) {
+    if (loaded) {
         await updatePageQuery()
-        }
     }
 }
 
@@ -294,46 +359,17 @@ async function handleRefresh() {
     })
 }
 
-let debounceTimer:
-    | ReturnType<typeof setTimeout>
-    | undefined
-
-    watch(searchInput, (value) => {
-    if (debounceTimer) {
-        clearTimeout(debounceTimer)
-    }
-
-    debounceTimer = setTimeout(() => {
-        const search = value.trim()
-
-        router.replace({
-        query: {
-            ...route.query,
-            search: search || undefined,
-        },
-        })
-    }, 300)
+onMounted(() => {
+    void restorePageFromUrl()
 })
-
-watch(
-    () => route.query.search,
-    (value) => {
-        const search = getSearchQuery(value)
-
-        if (search !== searchInput.value) {
-        searchInput.value = search
-        }
-    },
-)
 
 onBeforeUnmount(() => {
     if (debounceTimer) {
         clearTimeout(debounceTimer)
     }
-})
 
-onMounted(() => {
-    void restorePageFromUrl()
+    if (scrollFrame !== undefined) {
+        cancelAnimationFrame(scrollFrame)
+    }
 })
-
 </script>
