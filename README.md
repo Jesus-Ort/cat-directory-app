@@ -1,75 +1,114 @@
-# Nuxt Minimal Starter
+# 🐱 Michiario
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Directorio de razas de gatos desarrollado como parte de una prueba técnica para Frontend Developer.
 
-## Setup
+**Demo:** https://cat-directory-app-three.vercel.app
 
-Make sure to install dependencies:
+## Stack
+
+* Nuxt 4 + Vue 3
+* TypeScript
+* Nuxt UI
+* Pinia
+* Zod
+* Tailwind CSS
+* pnpm
+* Vercel
+
+## Características
+
+* SSR para la carga inicial.
+* Infinite scroll.
+* Virtualización mediante `UScrollArea`.
+* Búsqueda local con debounce.
+* Persistencia de búsqueda y página mediante query params.
+* Página de detalle por raza.
+* Random cat fact.
+* Retry automático con exponential backoff.
+* Validación de respuestas con Zod.
+* Estados de loading y error.
+* Refresh de la lista.
+* Accesibilidad y SEO.
+* Responsive design.
+
+## Arquitectura
+
+```text
+UI
+ ↓
+Pinia
+ ↓
+Services
+ ↓
+Cat Fact Ninja API
+```
+
+La lógica de acceso a datos está separada de la UI mediante servicios, mientras que Pinia centraliza el estado del directorio.
+
+### Estructura principal
+
+```text
+app/
+├── pages/
+├── services/
+├── stores/
+├── types/
+└── utils/
+```
+
+## ¿Por qué Nuxt?
+
+La prueba recomienda Next.js, pero permite utilizar Vue/Nuxt.
+
+Se eligió Nuxt por su integración con Vue 3, SSR, routing basado en archivos, TypeScript y facilidad para integrar Pinia y Nuxt UI.
+
+## API
+
+Se utiliza [Cat Fact Ninja](https://catfact.ninja/):
+
+```text
+GET /breeds?page={page}
+GET /fact
+```
+
+## Instalación
+
+Requiere **Node.js** y **pnpm**.
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
-
-Build the application for production:
+Para producción:
 
 ```bash
-# npm
-npm run build
-
-# pnpm
 pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
 pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Lighthouse
+
+Resultados actuales:
+
+| Categoría      | Resultado |
+| -------------- | --------: |
+| Performance    |      > 90 |
+| Accessibility  |       100 |
+| Best Practices |       100 |
+| SEO            |      > 90 |
+
+## Estado
+
+* [x] SSR
+* [x] Infinite scroll
+* [x] Virtualización
+* [x] Búsqueda
+* [x] Query params
+* [x] Detalle de raza
+* [x] Random fact
+* [x] Pinia
+* [x] Zod
+* [x] Retry
+* [x] Accesibilidad
+* [x] SEO
