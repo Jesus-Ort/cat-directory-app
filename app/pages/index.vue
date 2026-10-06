@@ -33,21 +33,43 @@
                 {{ filteredBreeds.length }} resultados
             </p>
 
-            <ul class="space-y-3">
-                <li
-                v-for="breed in filteredBreeds"
-                :key="`${breed.breed}-${breed.country}`"
-                class="rounded-lg border p-4"
-                >
+        <UScrollArea
+        :items="filteredBreeds"
+        :virtualize="{
+            estimateSize: 100,
+            overscan: 5,
+        }"
+        class="h-[600px] w-full"
+        aria-label="Directorio de razas de gatos"
+        >
+        <template #default="{ item: breed, index }">
+            <article
+            class="border-b p-4"
+            :aria-posinset="index + 1"
+            :aria-setsize="filteredBreeds.length"
+            >
+            <NuxtLink
+                :to="`/breeds/${encodeURIComponent(breed.breed)}`"
+                class="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
                 <h2 class="font-semibold">
-                    {{ breed.breed }}
+                {{ breed.breed }}
                 </h2>
 
                 <p class="text-sm text-gray-500">
-                    País: {{ breed.country }}
+                País: {{ breed.country }}
                 </p>
-                </li>
-            </ul>
+            </NuxtLink>
+            </article>
+
+            <div
+            v-if="index === filteredBreeds.length - 1"
+            ref="sentinel"
+            class="h-px"
+            aria-hidden="true"
+            />
+        </template>
+        </UScrollArea>
 
             <div
             ref="sentinel"
@@ -140,23 +162,7 @@ async function loadNextPage() {
 
 let observer: IntersectionObserver | undefined
 
-onMounted(async () => {
-
-    const targetPage = getTargetPage(route.query.page)
-
-    while (
-        currentPage.value < targetPage &&
-        hasMore.value
-    ) {
-    const previousPage = currentPage.value
-
-    await loadNextPage()
-
-    if (currentPage.value === previousPage) {
-        break
-        }
-    }
-
+onMounted(() => {
     observer = new IntersectionObserver(
         (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
@@ -170,6 +176,24 @@ onMounted(async () => {
 
     if (sentinel.value) {
         observer.observe(sentinel.value)
+    }
+})
+
+watch(sentinel, (element, previousElement) => {
+    if (previousElement) {
+        observer?.unobserve(previousElement)
+    }
+
+    if (element) {
+        observer?.observe(element)
+    }
+})
+
+onBeforeUnmount(() => {
+    observer?.disconnect()
+
+    if (debounceTimer) {
+        clearTimeout(debounceTimer)
     }
 })
 
