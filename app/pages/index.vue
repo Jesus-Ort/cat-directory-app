@@ -5,78 +5,92 @@
         </h1>
 
         <div class="mb-6">
-            <label for="breed-search" class="mb-2 block font-medium">
-                Buscar raza o país
-            </label>
+        <label
+            for="breed-search"
+            class="mb-2 block font-medium"
+        >
+            Buscar raza o país
+        </label>
 
+        <div class="flex justify-between gap-4">
             <UInput
-                id="breed-search"
-                v-model="searchInput"
-                placeholder="Ej. Siamese, Egypt..."
-                class="w-full"
-                aria-label="Buscar razas por nombre o país"
+            id="breed-search"
+            v-model="searchInput"
+            placeholder="Ej. Siamese, Egypt..."
+            class="w-full"
+            aria-label="Buscar razas por nombre o país"
+            />
+
+            <UButton
+            type="button"
+            icon="i-lucide-refresh-cw"
+            :loading="loading"
+            :disabled="loading || loadingMore"
+            aria-label="Actualizar lista de razas"
+            @click="handleRefresh"
             />
         </div>
-
-
-        <div v-if="loading" role="status" aria-live="polite">
-            Cargando razas...
         </div>
 
-        <div v-else-if="error" role="alert">
-            No se pudieron cargar las razas.
-            Intenta recargar la página.
+        <div
+        v-if="loading"
+        role="status"
+        aria-live="polite"
+        class="py-8 text-center"
+        >
+        Cargando razas...
+        </div>
+
+        <div
+        v-else-if="error"
+        role="alert"
+        class="py-8 text-center"
+        >
+        No se pudieron cargar las razas.
+        Intenta recargar la página.
         </div>
 
         <div v-else>
-            <p class="mb-4 text-sm text-gray-500" aria-live="polite">
-                {{ filteredBreeds.length }} resultados
-            </p>
+        <p
+            class="mb-4 text-sm text-gray-500"
+            aria-live="polite"
+        >
+            {{ filteredBreeds.length }} resultados
+        </p>
 
         <UScrollArea
-        :items="filteredBreeds"
-        :virtualize="{
+            :items="filteredBreeds"
+            :virtualize="{
             estimateSize: 100,
             overscan: 5,
-        }"
-        class="h-[600px] w-full"
-        aria-label="Directorio de razas de gatos"
+            }"
+            class="h-[600px] w-full"
+            aria-label="Directorio de razas de gatos"
+            @scroll="handleScroll"
         >
-        <template #default="{ item: breed, index }">
+            <template #default="{ item: breed, index }">
             <article
-            class="border-b p-4"
-            :aria-posinset="index + 1"
-            :aria-setsize="filteredBreeds.length"
+                class="border-b p-4"
+                :aria-posinset="index + 1"
+                :aria-setsize="filteredBreeds.length"
             >
-            <NuxtLink
+                <NuxtLink
                 :to="`/breeds/${encodeURIComponent(breed.breed)}`"
                 class="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4"
-            >
+                >
                 <h2 class="font-semibold">
-                {{ breed.breed }}
+                    {{ breed.breed }}
                 </h2>
 
                 <p class="text-sm text-gray-500">
-                País: {{ breed.country }}
+                    País: {{ breed.country }}
                 </p>
-            </NuxtLink>
+                </NuxtLink>
             </article>
-
-            <div
-            v-if="index === filteredBreeds.length - 1"
-            ref="sentinel"
-            class="h-px"
-            aria-hidden="true"
-            />
-        </template>
+            </template>
         </UScrollArea>
 
-            <div
-            ref="sentinel"
-            class="h-10"
-            aria-hidden="true"
-            />
-
+        <div>
             <div
             v-if="loadingMore"
             role="status"
@@ -94,11 +108,12 @@
             </p>
 
             <p
-                v-if="filteredBreeds.length === 0"
-                class="py-8 text-center text-gray-500"
+            v-if="filteredBreeds.length === 0"
+            class="py-8 text-center text-gray-500"
             >
-                No se encontraron razas que coincidan con la búsqueda.
+            No se encontraron razas que coincidan con la búsqueda.
             </p>
+        </div>
         </div>
     </main>
 </template>
@@ -124,96 +139,18 @@ const {
     hasMore,
 } = storeToRefs(breedsStore)
 
-const sentinel = ref<HTMLElement | null>(null)
-
-function getTargetPage(value: unknown): number {
-    const raw = Array.isArray(value) ? value[0] : value
-    const page = Number(raw)
-
-    if (!Number.isSafeInteger(page) || page < 1) {
-        return 1
-    }
-
-    return Math.min(page, 4)
-}
-
-async function loadNextPage() {
-    if (
-        loading.value ||
-        loadingMore.value ||
-        !hasMore.value
-    ) {
-        return
-    }
-
-    const previousPage = currentPage.value
-
-    await breedsStore.loadMore()
-
-    if (currentPage.value > previousPage) {
-        await router.replace({
-        query: {
-            ...route.query,
-            page: String(currentPage.value),
-        },
-        })
-    }
-}
-
-let observer: IntersectionObserver | undefined
-
-onMounted(() => {
-    observer = new IntersectionObserver(
-        (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-            void loadNextPage()
-        }
-        },
-        {
-        rootMargin: '300px',
-        },
-    )
-
-    if (sentinel.value) {
-        observer.observe(sentinel.value)
-    }
-})
-
-watch(sentinel, (element, previousElement) => {
-    if (previousElement) {
-        observer?.unobserve(previousElement)
-    }
-
-    if (element) {
-        observer?.observe(element)
-    }
-})
-
-onBeforeUnmount(() => {
-    observer?.disconnect()
-
-    if (debounceTimer) {
-        clearTimeout(debounceTimer)
-    }
-})
-
-onBeforeUnmount(() => {
-    observer?.disconnect()
-
-    if (debounceTimer) {
-        clearTimeout(debounceTimer)
-    }
-})
-
 function getSearchQuery(value: unknown): string {
     return typeof value === 'string' ? value : ''
 }
 
-const searchInput = ref(getSearchQuery(route.query.search))
-
+const searchInput = ref(
+    getSearchQuery(route.query.search),
+)
 
 const filteredBreeds = computed(() => {
-    const query = searchInput.value.trim().toLocaleLowerCase()
+    const query = searchInput.value
+        .trim()
+        .toLocaleLowerCase()
 
     if (!query) {
         return breeds.value
@@ -221,16 +158,147 @@ const filteredBreeds = computed(() => {
 
     return breeds.value.filter((breed) => {
         return (
-        breed.breed.toLocaleLowerCase().includes(query) ||
-        breed.country.toLocaleLowerCase().includes(query)
+        breed.breed
+            .toLocaleLowerCase()
+            .includes(query) ||
+        breed.country
+            .toLocaleLowerCase()
+            .includes(query)
         )
     })
 })
 
+let isLoadingNextPage = false
 
-let debounceTimer: ReturnType<typeof setTimeout> | undefined
+async function loadNextPage() {
+    if (
+        isLoadingNextPage ||
+        loading.value ||
+        loadingMore.value ||
+        !hasMore.value
+    ) {
+        return false
+    }
 
-watch(searchInput, (value) => {
+    isLoadingNextPage = true
+
+    try {
+        const previousPage = currentPage.value
+
+        await breedsStore.loadMore()
+
+        return currentPage.value > previousPage
+    } finally {
+        isLoadingNextPage = false
+    }
+}
+
+function updatePageQuery() {
+    return router.replace({
+        query: {
+        ...route.query,
+        page: String(currentPage.value),
+        },
+    })
+}
+
+function getTargetPage(value: unknown): number {
+    const raw = Array.isArray(value)
+        ? value[0]
+        : value
+
+    const page = Number(raw)
+
+    if (!Number.isSafeInteger(page) || page < 1) {
+        return 1
+    }
+
+    return Math.min(page, 100)
+}
+
+async function restorePageFromUrl() {
+    const targetPage = getTargetPage(route.query.page)
+
+    while (
+        currentPage.value < targetPage &&
+        hasMore.value
+    ) {
+        const loaded = await loadNextPage()
+
+        if (!loaded) {
+        break
+        }
+    }
+}
+
+function handleScroll(isScrolling: boolean) {
+    if (!isScrolling) {
+        return
+    }
+
+    void checkScrollPosition()
+}
+
+async function checkScrollPosition() {
+    if (
+        isLoadingNextPage ||
+        loading.value ||
+        loadingMore.value ||
+        !hasMore.value
+    ) {
+        return
+    }
+
+    await nextTick()
+
+    const scrollArea = document.querySelector(
+        '[aria-label="Directorio de razas de gatos"]',
+    )
+
+    if (!scrollArea) {
+        return
+    }
+
+    const viewport = scrollArea.querySelector(
+        '[data-slot="viewport"]',
+    ) as HTMLElement | null
+
+    if (!viewport) {
+        return
+    }
+
+    const distanceFromBottom =
+        viewport.scrollHeight -
+        viewport.scrollTop -
+        viewport.clientHeight
+
+    const threshold = 300
+
+    if (distanceFromBottom <= threshold) {
+        const loaded = await loadNextPage()
+
+        if (loaded) {
+        await updatePageQuery()
+        }
+    }
+}
+
+async function handleRefresh() {
+    await breedsStore.refresh()
+
+    await router.replace({
+        query: {
+        ...route.query,
+        page: '1',
+        },
+    })
+}
+
+let debounceTimer:
+    | ReturnType<typeof setTimeout>
+    | undefined
+
+    watch(searchInput, (value) => {
     if (debounceTimer) {
         clearTimeout(debounceTimer)
     }
@@ -246,7 +314,6 @@ watch(searchInput, (value) => {
         })
     }, 300)
 })
-
 
 watch(
     () => route.query.search,
@@ -264,4 +331,9 @@ onBeforeUnmount(() => {
         clearTimeout(debounceTimer)
     }
 })
+
+onMounted(() => {
+    void restorePageFromUrl()
+})
+
 </script>

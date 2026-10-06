@@ -116,9 +116,11 @@
 
 <script setup lang="ts">
 import type { Fact } from '~/types/catfact'
-import { getBreedByName, getRandomFact } from '~/services/catfact'
+import { getRandomFact } from '~/services/catfact'
+import { useBreedsStore } from '~/stores/breeds'
 
 const route = useRoute()
+const breedsStore = useBreedsStore()
 
 const breedName = computed(() => {
   const param = route.params.breed
@@ -131,7 +133,7 @@ const {
   error,
 } = await useAsyncData(
   () => `breed-${breedName.value}`,
-  () => getBreedByName(breedName.value)
+  () => breedsStore.findBreed(breedName.value),
 )
 
 const fact = ref<Fact | null>(null)
