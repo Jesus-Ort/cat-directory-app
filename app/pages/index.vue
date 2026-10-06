@@ -49,6 +49,28 @@
                 </li>
             </ul>
 
+            <div
+            ref="sentinel"
+            class="h-10"
+            aria-hidden="true"
+            />
+
+            <div
+            v-if="loadingMore"
+            role="status"
+            aria-live="polite"
+            class="py-4 text-center"
+            >
+            Cargando más razas...
+            </div>
+
+            <p
+            v-if="!hasMore && breeds.length > 0"
+            class="py-4 text-center text-gray-500"
+            >
+            Has llegado al final de la lista.
+            </p>
+
             <p
                 v-if="filteredBreeds.length === 0"
                 class="py-8 text-center text-gray-500"
@@ -71,7 +93,93 @@ await callOnce('breeds-initial', () => {
     return breedsStore.loadInitial()
 })
 
-const { breeds, loading, error } = storeToRefs(breedsStore)
+const {
+    breeds,
+    loading,
+    loadingMore,
+    error,
+    currentPage,
+    hasMore,
+} = storeToRefs(breedsStore)
+
+const sentinel = ref<HTMLElement | null>(null)
+
+function getTargetPage(value: unknown): number {
+    const raw = Array.isArray(value) ? value[0] : value
+    const page = Number(raw)
+
+    if (!Number.isSafeInteger(page) || page < 1) {
+        return 1
+    }
+
+    return Math.min(page, 4)
+}
+
+async function loadNextPage() {
+    if (
+        loading.value ||
+        loadingMore.value ||
+        !hasMore.value
+    ) {
+        return
+    }
+
+    const previousPage = currentPage.value
+
+    await breedsStore.loadMore()
+
+    if (currentPage.value > previousPage) {
+        await router.replace({
+        query: {
+            ...route.query,
+            page: String(currentPage.value),
+        },
+        })
+    }
+}
+
+let observer: IntersectionObserver | undefined
+
+onMounted(async () => {
+
+    const targetPage = getTargetPage(route.query.page)
+
+    while (
+        currentPage.value < targetPage &&
+        hasMore.value
+    ) {
+    const previousPage = currentPage.value
+
+    await loadNextPage()
+
+    if (currentPage.value === previousPage) {
+        break
+        }
+    }
+
+    observer = new IntersectionObserver(
+        (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+            void loadNextPage()
+        }
+        },
+        {
+        rootMargin: '300px',
+        },
+    )
+
+    if (sentinel.value) {
+        observer.observe(sentinel.value)
+    }
+})
+
+onBeforeUnmount(() => {
+    observer?.disconnect()
+
+    if (debounceTimer) {
+        clearTimeout(debounceTimer)
+    }
+})
 
 function getSearchQuery(value: unknown): string {
     return typeof value === 'string' ? value : ''
